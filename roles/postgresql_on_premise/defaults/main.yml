@@ -1,0 +1,15 @@
+# roles/postgresql_on_premise/defaults/main.yml
+---
+# Default PostgreSQL admin user for on-premise
+# pg_admin_user: postgres
+
+# Default database to create
+# db_name: my_default_database
+
+# Default users to create
+# pg_users:
+#   - name: app_user
+#     password: "{{ vault_app_user_password }}" # Store sensitive passwords in vault
+#     db: my_default_database # Grant access to this specific database
+#     priv: "ALL" # Privileges (e.g., ALL, SELECT, INSERT)
+#     role_attr_flags: "LOGIN"

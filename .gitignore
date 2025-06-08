@@ -1,0 +1,25 @@
+# Ansible Vault password file
+.vault_password
+*.vault
+
+# Ansible retry files
+*.retry
+
+# Python virtual environment
+venv/
+*.pyc
+__pycache__/
+
+# Local inventory or variable files (if any)
+local_*.ini
+local_*.yml
+
+# IDE and OS specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+reinit.sh

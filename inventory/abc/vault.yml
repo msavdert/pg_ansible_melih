@@ -1,0 +1,13 @@
+# inventory/abc/vault.yml
+# This file should be encrypted with Ansible Vault.
+# Contains secrets specific to the ABC project.
+
+# Secrets for ABC Project - Production Managed DB
+# abc_prod_pg_master_user: "abc_prod_master_user_CHANGE_ME"
+# abc_prod_pg_master_password: "supersecretpassword_prod_CHANGE_ME"
+# abc_prod_pg_app_user_password: "appusersecret_prod_CHANGE_ME"
+
+# Secrets for ABC Project - Test Managed DB
+# abc_test_pg_master_user: "abc_test_master_user_CHANGE_ME"
+# abc_test_pg_master_password: "supersecretpassword_test_CHANGE_ME"
+# abc_test_pg_app_user_password: "appusersecret_test_CHANGE_ME"

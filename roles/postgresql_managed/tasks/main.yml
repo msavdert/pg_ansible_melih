@@ -1,0 +1,44 @@
+# roles/postgresql_managed/tasks/main.yml
+---
+- name: "Ping the managed database server (conceptual)"
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 5432 # Default PostgreSQL port
+    timeout: 10
+    delay: 0
+  delegate_to: localhost
+  when: ansible_host is defined
+  register: ping_result
+  ignore_errors: true
+
+- name: "Display ping result"
+  ansible.builtin.debug:
+    msg: "Managed database {{ ansible_host }} is {{ 'reachable' if ping_result.state == 'started' else 'not reachable' }}."
+  when: ansible_host is defined
+
+- name: "Create PostgreSQL database (managed)"
+  community.postgresql.postgresql_db:
+    name: "{{ db_name }}"
+    login_host: "{{ ansible_host }}"
+    login_user: "{{ pg_master_user }}" # Master user for the managed service
+    login_password: "{{ pg_master_password }}" # Master password for the managed service (from vault)
+    port: 5432 # Default PostgreSQL port, adjust if necessary
+    state: present
+  delegate_to: localhost # Run this on the Ansible controller
+  when: db_name is defined and pg_master_user is defined and pg_master_password is defined
+
+- name: "Create PostgreSQL user (managed)"
+  community.postgresql.postgresql_user:
+    login_host: "{{ ansible_host }}"
+    login_user: "{{ pg_master_user }}"
+    login_password: "{{ pg_master_password }}"
+    port: 5432
+    db: "{{ item.db | default(omit) }}"
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    priv: "{{ item.priv | default(omit) }}"
+    role_attr_flags: "{{ item.role_attr_flags | default('LOGIN') }}"
+    state: present
+  delegate_to: localhost
+  loop: "{{ pg_users | default([]) }}"
+  when: pg_users is defined and pg_master_user is defined and pg_master_password is defined

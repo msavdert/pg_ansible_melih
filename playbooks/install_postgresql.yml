@@ -1,0 +1,20 @@
+---
+# playbooks/install_postgresql.yml
+# Generic playbook to install PostgreSQL, primarily for on-premise servers.
+# Target specific hosts or groups using: ansible-playbook ... -i inventory/<project>/ -l <target_group_or_host>
+
+- name: "Install PostgreSQL on On-Premise Servers"
+  hosts: all # Relies on --limit to target specific hosts/groups
+  gather_facts: yes
+
+  vars_files:
+    # Project/host specific secrets are loaded
+    # automatically from the inventory path (e.g., inventory/abc/vault.yml)
+    - "{{ inventory_dir }}/vault.yml"
+
+  roles:
+    - role: postgresql_on_premise
+      # This role typically includes installation tasks.
+      # Ensure its tasks are idempotent and suitable for an 'install' run.
+      # Apply this role if db_type is on_premise
+      when: db_type == 'on_premise'

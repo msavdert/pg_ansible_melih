@@ -1,0 +1,14 @@
+# roles/postgresql_managed/defaults/main.yml
+---
+# These would typically be set in host_vars or group_vars for the specific managed instance
+# and sensitive values like passwords should come from Ansible Vault.
+
+# pg_master_user: "your_rds_master_user"
+# db_name: "your_managed_db_name"
+
+# pg_users:
+#   - name: "managed_app_user"
+#     password: "{{ vault_managed_app_user_password }}"
+#     db: "your_managed_db_name"
+#     priv: "ALL"
+#     role_attr_flags: "LOGIN"
