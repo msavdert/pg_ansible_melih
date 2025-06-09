@@ -1,35 +1,17 @@
 ---
 # playbooks/manage_postgresql.yml
-# Generic playbook to manage PostgreSQL configurations (databases, users, permissions).
-# Target specific hosts or groups using: ansible-playbook ... -i inventory/<project>/ -l <target_group_or_host>
-
 - name: "Manage PostgreSQL Configurations"
-  hosts: all # Relies on --limit to target specific hosts/groups
+  hosts: all
   gather_facts: yes
 
-  vars_files:
-    # Load project/host specific secrets are loaded automatically from the inventory path
-    - "{{ inventory_dir }}/vault.yml"
+  #vars_files:
+  #  - "{{ inventory_dir }}/vault.yml"
 
   roles:
     - role: postgresql_on_premise
-      # Apply on-premise management tasks (users, dbs, etc.)
-      # This role is applied if the host belongs to the project-specific on-premise groups.
-      # The playbook must be run with -e project_name=<your_project_name>
-      vars:
-        pg_databases: "{{ project_vars.databases | default([]) }}"
-        pg_users: "{{ project_vars.users | default([]) }}"
-        pg_permissions: "{{ project_vars.permissions | default([]) }}"
-      when: db_type == 'on_premise'
+      when: db_type == 'onprem'
 
     - role: postgresql_managed
-      # Apply managed DB management tasks (users, dbs, etc.)
-      # This role is applied if the host belongs to the project-specific managed server groups.
-      # The playbook must be run with -e project_name=<your_project_name>
-      vars:
-        pg_databases: "{{ project_vars.databases | default([]) }}"
-        pg_users: "{{ project_vars.users | default([]) }}"
-        pg_permissions: "{{ project_vars.permissions | default([]) }}"
       when: db_type == 'managed'
 
   tasks:

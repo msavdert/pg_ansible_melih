@@ -1,0 +1,31 @@
+---
+prod:
+  hosts:
+    pgrdsp01:
+      ansible_host: 172.28.5.61
+      db_type: managed
+      ansible_connection: local
+    pgrdsp02:
+      ansible_host: 172.28.5.62
+      db_type: managed
+      ansible_connection: local
+
+test:
+  hosts:
+    pgrdst01:
+      ansible_host: 172.28.5.71
+      db_type: managed
+      ansible_connection: local
+    pgrdst02:
+      ansible_host: 172.28.5.72
+      db_type: managed
+      ansible_connection: local
+    pgrdst03:
+      ansible_host: 172.28.5.73
+      db_type: managed
+      ansible_connection: local
+
+all:
+  children:
+    prod:
+    test:
