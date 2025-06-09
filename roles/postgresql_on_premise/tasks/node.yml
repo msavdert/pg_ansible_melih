@@ -1,0 +1,81 @@
+---
+#--------------------------------------------------------------#
+# Install node repo                                  [node_repo]
+#--------------------------------------------------------------#
+- name: Node Package | setup node repo
+  tags: node_repo
+  block:
+    - name: Node Package | add epel repo file to nodes | RedHat
+      tags: [node_repo_epel, node_repo_add]
+      ansible.builtin.package:
+        name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+      register: package_status
+      until: package_status is success
+      delay: 5
+      retries: 3
+      when: node_epel_repo|bool and ansible_os_family == "RedHat"
+
+    - name: Node Package | add postgresql repo file to nodes | RedHat
+      tags: [node_repo_postgres, node_repo_add]
+      ansible.builtin.package:
+        name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-{{ ansible_architecture }}/pgdg-redhat-repo-latest.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+      register: package_status
+      until: package_status is success
+      delay: 5
+      retries: 3
+      when: ansible_os_family == "RedHat"
+
+    - name: Node Package | Check if signing key is present | Debian
+      stat:
+        path: /etc/apt/trusted.gpg.d/pgdg.asc
+      register: postgresql_st_pgdg
+      when: ansible_os_family == "Debian"
+
+    - name: Node Package | Import and Write gpg key to pgdg.asc | Debian
+      get_url:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        dest: /etc/apt/trusted.gpg.d/pgdg.asc
+      become: true
+      when: ansible_os_family == "Debian" and not postgresql_st_pgdg.stat.exists
+
+    - name: Node Package | Add postgresql repository into sources list | Debian
+      ansible.builtin.apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Node Package | Update apt cache | Debian
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_pkg_mgr == "apt"
+
+    - name: Node Package | Update yum cache | RedHat
+      ansible.builtin.yum:
+        update_cache: yes
+      when: ansible_pkg_mgr == "yum"
+
+    - name: Node Package | Update dnf cache | RedHat
+      ansible.builtin.dnf:
+        update_cache: yes
+      when: ansible_pkg_mgr == "dnf"
+
+#--------------------------------------------------------------#
+# Install packages                                    [node_pkg]
+#--------------------------------------------------------------#
+- name: Node Package | install node packages
+  tags: node_pkg
+  block:
+    - name: install default node packages
+      environment: "{{ proxy_env | default({}) }}"
+      package: name={{ item }} state=present
+      with_items: "{{ node_default_packages | default(node_packages_default[ansible_pkg_mgr]) | default([]) }}"
+
+    - name: install extra node packages
+      environment: "{{ proxy_env | default({}) }}"
+      package: name={{ item }} state=latest
+      with_items: "{{ node_packages }}"

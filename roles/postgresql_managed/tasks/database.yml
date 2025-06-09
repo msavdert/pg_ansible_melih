@@ -1,0 +1,21 @@
+---
+- name: Ensure PostgreSQL databases are present.
+  tags: [pg_database]
+  community.postgresql.postgresql_db:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner | default(dba_user) }}"
+    state: "{{ item.state | default('present') }}"
+    lc_collate: "{{ item.lc_collate | default('en_US.UTF-8') }}"
+    lc_ctype: "{{ item.lc_ctype | default('en_US.UTF-8') }}"
+    encoding: "{{ item.encoding | default('UTF-8') }}"
+    template: "{{ item.template | default('template0') }}"
+    login_host: "{{ ansible_host }}"
+    login_port: "{{ pg_port }}"
+    login_user: "{{ dba_user }}"
+    login_password: "{{ dba_pass }}"
+    maintenance_db: "{{ pg_database }}"
+    comment: "{{ item.comment | default(omit) }}"
+    target: "{{ item.target | default(omit) }}"
+    target_opts: "{{ item.target_opts | default(omit) }}"
+  with_items: "{{ postgresql_databases }}"
+  when: postgresql_databases is defined and postgresql_databases | length > 0

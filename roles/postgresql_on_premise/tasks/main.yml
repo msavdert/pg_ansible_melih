@@ -1,40 +1,9 @@
-# roles/postgresql_on_premise/tasks/main.yml
 ---
-- name: "Ensure PostgreSQL is installed (example for Debian/Ubuntu)"
-  ansible.builtin.apt:
-    name: postgresql
-    state: present
-  when: ansible_os_family == "Debian"
-  become: true
+# Main PostgreSQL role tasks
 
-- name: "Ensure PostgreSQL service is started and enabled"
-  ansible.builtin.service:
-    name: postgresql
-    state: started
-    enabled: true
-  become: true
+- name: Configure Node
+  include_tasks: node.yml
 
-- name: "Create PostgreSQL database (on-premise)"
-  community.postgresql.postgresql_db:
-    name: "{{ db_name }}"
-    login_user: "{{ pg_admin_user | default('postgres') }}"
-    login_password: "{{ pg_admin_password | default(omit) }}" # Omit if using peer auth or .pgpass
-    state: present
-  become: true
-  become_user: postgres # Or your PostgreSQL admin user
-  when: db_name is defined
-
-- name: "Create PostgreSQL user (on-premise)"
-  community.postgresql.postgresql_user:
-    db: "{{ item.db | default(omit) }}" # Connect to specific DB to create user or omit for global
-    name: "{{ item.name }}"
-    password: "{{ item.password }}"
-    priv: "{{ item.priv | default(omit) }}"
-    role_attr_flags: "{{ item.role_attr_flags | default(omit) }}"
-    state: present
-    login_user: "{{ pg_admin_user | default('postgres') }}"
-    login_password: "{{ pg_admin_password | default(omit) }}"
-  become: true
-  become_user: postgres
-  loop: "{{ pg_users | default([]) }}"
-  when: pg_users is defined
+- name: Install PostgreSQL
+  include_tasks: install.yml
+  

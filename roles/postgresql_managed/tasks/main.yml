@@ -7,6 +7,13 @@
   include_tasks: ping.yml
   tags: [pg_manage, pg_ping]
 
+#--------------------------------------------------------------#
+# Database                                         [pg_database]
+#--------------------------------------------------------------#
+- name: PostgreSQL Database | Ensure databases are present
+  include_tasks: database.yml
+  tags: [pg_manage, pg_database]
+
 #- name: "Ping the managed database server (conceptual)"
 #  ansible.builtin.wait_for:
 #    host: "{{ ansible_host }}"

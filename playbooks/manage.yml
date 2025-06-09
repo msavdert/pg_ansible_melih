@@ -3,10 +3,7 @@
 - name: "Manage PostgreSQL Configurations"
   hosts: all
   gather_facts: yes
-
-  #vars_files:
-  #  - "{{ inventory_dir }}/vault.yml"
-
+  
   roles:
     - role: postgresql_on_premise
       when: db_type == 'onprem'

@@ -1,0 +1,10 @@
+---
+# playbooks/install_postgresql.yml
+
+- name: "Install PostgreSQL on On-Premise Servers"
+  hosts: all
+  gather_facts: yes
+
+  roles:
+    - role: postgresql_on_premise
+      when: db_type == 'onprem'

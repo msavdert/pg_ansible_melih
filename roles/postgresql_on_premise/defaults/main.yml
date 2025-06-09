@@ -1,15 +1,63 @@
-# roles/postgresql_on_premise/defaults/main.yml
 ---
 # Default PostgreSQL admin user for on-premise
-# pg_admin_user: postgres
+#-----------------------------------------------------------------
+# PGSQL_INSTALL
+#-----------------------------------------------------------------
+postgresql_version: "16"
+postgresql_port: 5432
+postgresql_user: "postgres"
+postgresql_data_checksums: true
+postgresql_debian_bin_directory: /usr/lib/postgresql/{{ postgresql_version }}/bin
+postgresql_redhat_bin_directory: /usr/pgsql-{{ postgresql_version }}/bin
+postgresql_redhat_data_dir: "/var/lib/pgsql/{{ postgresql_version }}/data"
+postgresql_debian_data_dir: "/var/lib/postgresql/{{ postgresql_version }}/main"
+postgresql_service_state: started
+postgresql_service_enabled: true
+postgresql_unix_socket_directories:
+  - /var/run/postgresql
+postgresql_daemon:
+  dnf:
+    - postgresql-{{ postgresql_version }}
+  apt:
+    - postgresql
+postgresql_packages:
+  dnf:
+    - postgresql{{ postgresql_version }}-server
+    - postgresql{{ postgresql_version }}-contrib
+  apt:
+    - postgresql-{{ postgresql_version }}
+    - postgresql-contrib-{{ postgresql_version }}
 
-# Default database to create
-# db_name: my_default_database
+#-----------------------------------------------------------------
+# INSTALLATION CONTROL
+#-----------------------------------------------------------------
+# Skip installation if PostgreSQL packages are already installed
+postgresql_skip_if_installed: true
 
-# Default users to create
-# pg_users:
-#   - name: app_user
-#     password: "{{ vault_app_user_password }}" # Store sensitive passwords in vault
-#     db: my_default_database # Grant access to this specific database
-#     priv: "ALL" # Privileges (e.g., ALL, SELECT, INSERT)
-#     role_attr_flags: "LOGIN"
+#-----------------------------------------------------------------
+# NODE_PACKAGE
+#-----------------------------------------------------------------
+proxy_env: # global proxy env when downloading packages
+  no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"
+  # http_proxy:  # set your proxy here: e.g http://user:pass@proxy.xxx.com
+  # https_proxy: # set your proxy here: e.g http://user:pass@proxy.xxx.com
+  # all_proxy:   # set your proxy here: e.g http://user:pass@proxy.xxx.com
+node_epel_repo: false
+node_disable_selinux: false
+node_disable_firewall: false
+node_packages: []
+node_packages_default: # used according to , if  not set
+  dnf:
+    - sudo,cronie,python3-psycopg2,glibc-langpack-en
+  apt:
+    - sudo,cron,python3-psycopg2,libpq-dev
+
+#-----------------------------------------------------------------
+# NODE_TIME
+#-----------------------------------------------------------------
+node_timezone: "" # setup node timezone, empty string to skip
+node_ntp_enabled: true # enable chronyd time sync service?
+node_ntp_servers: # ntp servers in
+  - pool pool.ntp.org iburst
+node_crontab_overwrite: true # overwrite or append to ?
+node_crontab: [] # crontab entries in

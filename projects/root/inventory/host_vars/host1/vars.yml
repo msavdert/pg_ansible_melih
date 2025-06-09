@@ -1,0 +1,27 @@
+#-----------------------------------------------------------------
+# PGSQL_INSTALL
+#-----------------------------------------------------------------
+postgresql_version: "16"
+postgresql_port: 5432
+postgresql_user: "postgres"
+postgresql_data_checksums: true
+postgresql_debian_bin_directory: /usr/lib/postgresql/{{ postgresql_version }}/bin
+postgresql_redhat_bin_directory: /usr/pgsql-{{ postgresql_version }}/bin
+postgresql_redhat_data_dir: "/var/lib/pgsql/{{ postgresql_version }}/data"
+postgresql_debian_data_dir: "/var/lib/postgresql/{{ postgresql_version }}/main"
+postgresql_service_state: started
+postgresql_service_enabled: true
+postgresql_unix_socket_directories:
+  - /var/run/postgresql
+postgresql_daemon:
+  dnf:
+    - postgresql-{{ postgresql_version }}
+  apt:
+    - postgresql
+postgresql_packages:
+  dnf:
+    - postgresql{{ postgresql_version }}-server
+    - postgresql{{ postgresql_version }}-contrib
+  apt:
+    - postgresql-{{ postgresql_version }}
+    - postgresql-contrib-{{ postgresql_version }
