@@ -54,7 +54,7 @@
 - name: PostgreSQL Info | Show important PostgreSQL details
   community.postgresql.postgresql_info:
     login_user: "{{ postgresql_user }}"
-    login_unix_socket: "{{ postgresql_unix_socket_directories[0] }}"
+    login_unix_socket: "{{ postgresql_unix_socket_directories }}"
   register: pg_info
   become: true
   become_user: "{{ postgresql_user }}"

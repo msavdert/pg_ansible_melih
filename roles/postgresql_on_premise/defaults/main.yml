@@ -13,8 +13,7 @@ postgresql_redhat_data_dir: "/var/lib/pgsql/{{ postgresql_version }}/data"
 postgresql_debian_data_dir: "/var/lib/postgresql/{{ postgresql_version }}/main"
 postgresql_service_state: started
 postgresql_service_enabled: true
-postgresql_unix_socket_directories:
-  - /var/run/postgresql
+postgresql_unix_socket_directories: "/var/run/postgresql"
 postgresql_daemon:
   dnf:
     - postgresql-{{ postgresql_version }}
@@ -50,7 +49,7 @@ node_packages_default: # used according to , if  not set
   dnf:
     - sudo,cronie,python3-psycopg2,glibc-langpack-en
   apt:
-    - sudo,cron,python3-psycopg2,libpq-dev
+    - sudo,cron,python3-psycopg2,libpq-dev,acl
 
 #-----------------------------------------------------------------
 # NODE_TIME
