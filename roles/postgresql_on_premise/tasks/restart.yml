@@ -1,0 +1,33 @@
+---
+# PostgreSQL restart check and management
+
+#--------------------------------------------------------------#
+# Get postgresql facts                                 [pg_fact]
+#--------------------------------------------------------------#
+- name: PostgreSQL Config | get postgresql database Information
+  tags: [pg_restart]
+  become: yes
+  become_user: "{{ postgresql_user }}"
+  block:
+    - name: PostgreSQL Config | Get Information
+      community.postgresql.postgresql_info:
+      register: pg_info
+
+- name: PostgreSQL information
+  tags: [pg_restart]
+  ansible.builtin.debug:
+    var: pg_restart_info
+  vars:
+    pg_restart_info:
+      pending_restart_settings: "{{ pg_info.pending_restart_settings | default([]) | join(', ') }}"
+
+- name: Restart PostgreSQL if pending settings exist
+  tags: [pg_restart]
+  systemd:
+    name: "{{ postgresql_daemon[ansible_pkg_mgr][0] }}"
+    state: restarted
+  become: yes
+  when:
+    - pg_info.pending_restart_settings is defined
+    - pg_info.pending_restart_settings | length > 0
+    - postgresql_allow_restart | default(false)

@@ -1,0 +1,32 @@
+---
+# PostgreSQL ALTER SYSTEM parameter configuration
+
+- name: PostgreSQL Config | Apply postgresql parameters
+  tags: [pg_alter_system]
+  community.postgresql.postgresql_alter_system:
+    param: "{{ item.key }}"
+    value: "{{ item.value }}"
+    login_user: "{{ postgresql_user | default('postgres') }}"
+    login_unix_socket: "{{ postgresql_unix_socket_directories | default('/var/run/postgresql') }}"
+  with_dict: "{{ postgresql_alter_system_params }}"
+  when: postgresql_alter_system_params | length > 0
+  become: true
+  become_user: "{{ postgresql_user | default('postgres') }}"
+  notify: reload postgresql
+
+- name: PostgreSQL Config | Get postgresql database Information
+  tags: [pg_alter_system]
+  become: yes
+  become_user: "{{ postgresql_user }}"
+  block:
+    - name: PostgreSQL Config | Get Information
+      community.postgresql.postgresql_info:
+      register: pg_info
+
+- name: PostgreSQL Config | Display pending restart settings
+  tags: [pg_alter_system]
+  ansible.builtin.debug:
+    var: pg_restart_info
+  vars:
+    pg_restart_info:
+      pending_restart_settings: "{{ pg_info.pending_restart_settings | default([]) | join(', ') }}"

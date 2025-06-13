@@ -1,0 +1,16 @@
+---
+- name: Ensure PostgreSQL schemas are present.
+  tags: [pg_schema]
+  community.postgresql.postgresql_schema:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner | default(postgresql_user) }}"
+    state: "{{ item.state | default('present') }}"
+    login_db: "{{ item.login_db | default(omit) }}"
+    login_host: "{{ item.login_host | default('localhost') }}"
+    login_password: "{{ item.login_password | default(omit) }}"
+    login_user: "{{ item.login_user | default(postgresql_user) }}"
+    login_unix_socket: "{{ item.login_unix_socket | default(postgresql_unix_socket_directories) }}"
+  with_items: "{{ postgresql_schemas }}"
+  become: true
+  become_user: "{{ postgresql_user }}"
+  when: postgresql_schemas is defined and postgresql_schemas|length > 0

@@ -1,0 +1,14 @@
+---
+- name: Ensure PostgreSQL schemas are present.
+  tags: [pg_schema]
+  community.postgresql.postgresql_schema:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner | default(dba_user) }}"
+    state: "{{ item.state | default('present') }}"
+    login_host: "{{ ansible_host }}"
+    login_port: "{{ pg_port }}"
+    login_user: "{{ dba_user }}"
+    login_password: "{{ dba_pass }}"
+    login_db: "{{ item.login_db }}"
+  with_items: "{{ postgresql_schemas }}"
+  when: postgresql_schemas is defined and postgresql_schemas|length > 0

@@ -1,5 +1,5 @@
 ---
-# Initialize PostgreSQL database
+# Initialize PostgreSQL database and ensure it is running
 - name: PostgreSQL Initialize | Install PostgreSQL
   package: name={{ item }} state=present
   with_items: "{{ postgresql_packages[ansible_pkg_mgr] }}"

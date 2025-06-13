@@ -1,0 +1,349 @@
+---
+#-----------------------------------------------------------------
+# ON-PREMISE POSTGRESQL CONFIGURATION
+#-----------------------------------------------------------------
+
+#-----------------------------------------------------------------
+# PGSQL INSTALLATION & SERVICE
+#-----------------------------------------------------------------
+postgresql_version: "16" # Specify desired PostgreSQL version
+postgresql_port: 5432
+postgresql_user: "postgres" # System user for PostgreSQL
+postgresql_data_checksums: true # Enable data checksums for new clusters
+
+# Paths (OS-dependent, defaults usually work)
+# postgresql_debian_bin_directory: "/usr/lib/postgresql/{{ postgresql_version }}/bin"
+# postgresql_redhat_bin_directory: "/usr/pgsql-{{ postgresql_version }}/bin"
+# postgresql_redhat_data_dir: "/var/lib/pgsql/{{ postgresql_version }}/data"
+# postgresql_debian_data_dir: "/var/lib/postgresql/{{ postgresql_version }}/main"
+# postgresql_unix_socket_directories: "/var/run/postgresql" # Comma-separated list
+
+postgresql_service_name: "postgresql-{{ postgresql_version }}" # Or just "postgresql" on some systems
+postgresql_service_state: "started"
+postgresql_service_enabled: true
+
+# Packages (OS-dependent, defaults usually work)
+# postgresql_daemon:
+#   dnf:
+#     - "postgresql-{{ postgresql_version }}"
+#   apt:
+#     - "postgresql"
+# postgresql_packages:
+#   dnf:
+#     - "postgresql{{ postgresql_version }}-server"
+#     - "postgresql{{ postgresql_version }}-contrib"
+#   apt:
+#     - "postgresql-{{ postgresql_version }}"
+#     - "postgresql-contrib-{{ postgresql_version }}"
+
+# Skip installation if already installed
+postgresql_skip_if_installed: true
+
+#-----------------------------------------------------------------
+# PGSQL_INSTALL
+#-----------------------------------------------------------------
+postgresql_version: "16"
+postgresql_port: 5432
+postgresql_user: "postgres"
+postgresql_data_checksums: true
+postgresql_debian_bin_directory: /usr/lib/postgresql/{{ postgresql_version }}/bin
+postgresql_redhat_bin_directory: /usr/pgsql-{{ postgresql_version }}/bin
+postgresql_redhat_data_dir: "/var/lib/pgsql/{{ postgresql_version }}/data"
+postgresql_debian_data_dir: "/var/lib/postgresql/{{ postgresql_version }}/main"
+postgresql_service_state: started
+postgresql_service_enabled: true
+postgresql_unix_socket_directories: "/var/run/postgresql"
+postgresql_daemon:
+  dnf:
+    - postgresql-{{ postgresql_version }}
+  apt:
+    - postgresql
+postgresql_packages:
+  dnf:
+    - postgresql{{ postgresql_version }}-server
+    - postgresql{{ postgresql_version }}-contrib
+  apt:
+    - postgresql-{{ postgresql_version }}
+    - postgresql-contrib-{{ postgresql_version }}
+
+#-----------------------------------------------------------------
+# NODE PREPARATION (Related to ansible-role-node)
+#-----------------------------------------------------------------
+# proxy_env:
+#   no_proxy: "localhost,127.0.0.1"
+#   # http_proxy:
+#   # https_proxy:
+# node_epel_repo: false
+# node_disable_selinux: false
+# node_disable_firewall: false
+# node_packages: [] # Additional system packages
+# node_timezone: "Etc/UTC"
+# node_ntp_enabled: true
+# node_ntp_servers:
+#   - "pool.ntp.org iburst"
+
+#-----------------------------------------------------------------
+# DATABASE DEFINITIONS
+#-----------------------------------------------------------------
+postgresql_databases:
+  - name: "app_db1"
+    owner: "app_user1"
+    lc_collate: "en_US.UTF-8"
+    lc_ctype: "en_US.UTF-8"
+    encoding: "UTF-8"
+    template: "template0"
+    # login_host: "localhost" # For localhost operations if needed during creation
+    # login_port: "{{ postgresql_port }}"
+    # login_user: "{{ postgresql_user }}" # System postgres user
+    # login_password: "vault_postgres_password" # If system postgres user has a password set
+    state: "present"
+    comment: "Primary database for Application 1"
+  - name: "reporting_db"
+    owner: "reporting_role"
+    state: "present"
+    comment: "Database for reporting and analytics"
+
+#-----------------------------------------------------------------
+# SCHEMA DEFINITIONS
+#-----------------------------------------------------------------
+postgresql_schemas:
+  - database: "app_db1"
+    name: "main_schema"
+    owner: "app_user1"
+    state: "present"
+    comment: "Main schema for app_db1"
+  - database: "app_db1"
+    name: "audit_schema"
+    owner: "auditor_user"
+    state: "present"
+    comment: "Schema for audit trails in app_db1"
+  - database: "reporting_db"
+    name: "public" # Example: ensure public schema is owned by reporting_role
+    owner: "reporting_role"
+    state: "present" # Can be used to manage existing schemas too
+
+#-----------------------------------------------------------------
+# USER AND ROLE DEFINITIONS
+#-----------------------------------------------------------------
+postgresql_users: # Users are roles with LOGIN privilege
+  - name: "app_user1"
+    password: "vault_app_user1_password" # STORE IN ANSIBLE VAULT
+    # encrypted: yes # if password is pre-encrypted hash
+    # valid_until: 'infinity'
+    role_attr_flags: "LOGIN,CREATEDB" # e.g., LOGIN, SUPERUSER, CREATEDB, CREATEROLE, NOINHERIT, REPLICATION
+    # member_of: ["some_group_role"]
+    # connection_limit: 10
+    state: "present"
+    comment: "Application user for app_db1"
+
+  - name: "readonly_user_app1"
+    password: "vault_readonly_app1_password" # STORE IN ANSIBLE VAULT
+    role_attr_flags: "LOGIN"
+    state: "present"
+    comment: "Read-only user for app_db1"
+
+  - name: "auditor_user"
+    password: "vault_auditor_password"
+    role_attr_flags: "LOGIN"
+    state: "present"
+    comment: "User for accessing audit_schema"
+
+postgresql_roles: # Roles without LOGIN privilege (groups)
+  - name: "reporting_role"
+    # role_attr_flags: "NOLOGIN" (default if no LOGIN)
+    # member_of: []
+    state: "present"
+    comment: "Role for users who need reporting access"
+  - name: "developers"
+    state: "present"
+    comment: "Group role for developers"
+
+#-----------------------------------------------------------------
+# PRIVILEGES
+# Grant privileges to users/roles on various database objects.
+#-----------------------------------------------------------------
+postgresql_privileges:
+  - grantee: "app_user1"
+    db: "app_db1"
+    schema: "main_schema" # Optional: if granting on all tables in a schema
+    object_name: "ALL" # Or specific table/sequence/function name
+    object_type: "TABLES" # TABLES, SEQUENCES, FUNCTIONS, SCHEMAS, DATABASE, LANGUAGE, FOREIGN DATA WRAPPER, FOREIGN SERVER, TABLESPACE
+    privs: "ALL" # e.g., "SELECT,INSERT,UPDATE,DELETE" or "USAGE" for schemas/sequences
+    # grant_option: yes # Allow grantee to grant these privs to others
+    state: "present"
+
+  - grantee: "readonly_user_app1"
+    db: "app_db1"
+    schema: "main_schema"
+    object_name: "ALL"
+    object_type: "TABLES"
+    privs: "SELECT"
+    state: "present"
+  - grantee: "readonly_user_app1"
+    db: "app_db1"
+    schema: "main_schema"
+    object_name: "ALL"
+    object_type: "SEQUENCES"
+    privs: "SELECT,USAGE" # USAGE is often needed for sequences with SELECT on table
+    state: "present"
+
+  - grantee: "auditor_user"
+    db: "app_db1"
+    schema: "audit_schema"
+    object_name: "ALL"
+    object_type: "TABLES"
+    privs: "SELECT,INSERT" # Auditors might insert records
+    state: "present"
+
+  - grantee: "reporting_role" # Grant to the role
+    db: "reporting_db"
+    # schema: "public" # Or specific schema
+    object_name: "ALL"
+    object_type: "TABLES"
+    privs: "SELECT"
+    state: "present"
+  - grantee: "reporting_role"
+    db: "reporting_db"
+    object_type: "SCHEMAS"
+    object_name: "public" # Grant USAGE on schema
+    privs: "USAGE"
+    state: "present"
+
+  - grantee: "developers"
+    db: "app_db1"
+    object_type: "SCHEMAS"
+    object_name: "main_schema"
+    privs: "USAGE,CREATE" # Allow developers to create objects in main_schema
+    state: "present"
+
+
+#-----------------------------------------------------------------
+# DEFAULT PRIVILEGES
+# Define default privileges for objects created in the future.
+#-----------------------------------------------------------------
+postgresql_default_privileges:
+  - role: "app_user1" # The role that creates objects (or whose privileges are being set for future objects)
+    # target_role: "app_user1" # The role to grant privileges to (if different from 'role')
+    target_schema: "main_schema"
+    database: "app_db1"
+    privs: "SELECT,INSERT,UPDATE,DELETE"
+    obj_type: "TABLES" # TABLES, SEQUENCES, FUNCTIONS, TYPES
+    state: "present"
+  - role: "app_user1"
+    target_schema: "main_schema"
+    database: "app_db1"
+    privs: "USAGE,SELECT"
+    obj_type: "SEQUENCES"
+    state: "present"
+
+#-----------------------------------------------------------------
+# EXTENSION DEFINITIONS
+#-----------------------------------------------------------------
+postgresql_extensions:
+  - name: "pg_stat_statements"
+    database: "app_db1"
+    # schema: "public" # Some extensions install into a specific schema
+    state: "present"
+    comment: "Enable pg_stat_statements for query monitoring"
+  - name: "uuid-ossp"
+    database: "app_db1"
+    state: "present"
+    comment: "Enable uuid-ossp for UUID generation"
+  - name: "hstore"
+    database: "app_db1"
+    state: "present"
+    comment: "Enable hstore for key-value pair storage"
+  - name: "citext"
+    database: "app_db1"
+    state: "present"
+    comment: "Enable case-insensitive text type"
+
+#-----------------------------------------------------------------
+# POSTGRESQL.CONF SETTINGS
+# These are parameters for the postgresql.conf file.
+#-----------------------------------------------------------------
+postgresql_conf:
+  - name: "shared_buffers"
+    value: "1GB" # Adjust based on server RAM
+    comment: "Sets the amount of memory the database server uses for shared memory buffers."
+  - name: "work_mem"
+    value: "64MB" # Per-operation memory for sorts, hashes
+    comment: "Memory for sorts, hashes, etc. per operation."
+  - name: "maintenance_work_mem"
+    value: "256MB" # For VACUUM, CREATE INDEX
+    comment: "Memory for maintenance tasks like VACUUM, CREATE INDEX."
+  - name: "effective_cache_size"
+    value: "3GB" # Estimate of total cache available (OS + PG)
+    comment: "Planner's assumption about effective disk cache size."
+  - name: "max_connections"
+    value: "100"
+    comment: "Maximum number of concurrent connections."
+  - name: "checkpoint_completion_target"
+    value: "0.9"
+    comment: "Time to spread checkpoint writes over, as fraction of checkpoint_timeout."
+  - name: "wal_buffers"
+    value: "16MB" # Min 32kB, typically -1 (1/32 of shared_buffers)
+    comment: "Memory for WAL data before writing to disk."
+  - name: "default_statistics_target"
+    value: "100" # Default sampling for ANALYZE
+    comment: "Default statistics target for ANALYZE."
+  - name: "log_destination"
+    value: "stderr,csvlog" # stderr, csvlog, syslog, eventlog
+    comment: "Destinations for server log output."
+  - name: "logging_collector"
+    value: "on" # Required for csvlog
+    comment: "Enable log collection to files."
+  - name: "log_directory"
+    value: "log" # Relative to data directory, or absolute path
+    comment: "Directory for log files."
+  - name: "log_filename"
+    value: "postgresql-%Y-%m-%d_%H%M%S.log"
+    comment: "Log file name pattern."
+  - name: "log_statement"
+    value: "ddl" # none, ddl, mod, all
+    comment: "Which SQL statements to log."
+  - name: "log_min_duration_statement"
+    value: "500ms" # Log statements slower than this (0 logs all, -1 disables)
+    comment: "Log statements exceeding this execution time."
+  - name: "log_line_prefix"
+    value: "'%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '" # Log line prefix format
+    comment: "Prefix for each log line."
+  - name: "archive_mode"
+    value: "off" # on, off, always (for WAL archiving)
+    comment: "Enables WAL archiving."
+  # - name: "archive_command"
+  #   value: "'cp %p /path_to_archive/%f'" # Command to archive a WAL segment
+  #   comment: "Command to execute for WAL archiving."
+  # - name: "max_wal_senders"
+  #   value: "10" # For replication
+  #   comment: "Maximum number of WAL sender processes for replication."
+  # - name: "wal_level"
+  #   value: "replica" # minimal, replica, logical
+  #   comment: "Level of information written to WAL."
+
+#-----------------------------------------------------------------
+# PG_HBA.CONF SETTINGS
+# Client authentication rules. Order matters.
+#-----------------------------------------------------------------
+postgresql_pg_hba_conf:
+  - { type: "local", database: "all", user: "all", method: "peer", comment: "Default peer auth for local Unix socket connections" }
+  # Example: Allow postgres user from anywhere with md5 password
+  - { type: "host", database: "all", user: "{{ postgresql_user }}", address: "127.0.0.1/32", method: "md5", comment: "Allow postgres user locally with password" }
+  - { type: "host", database: "all", user: "{{ postgresql_user }}", address: "::1/128", method: "md5", comment: "Allow postgres user locally (IPv6) with password" }
+  # Example: Allow app_user1 to connect to app_db1 from a specific subnet
+  - { type: "host", database: "app_db1", user: "app_user1", address: "192.168.1.0/24", method: "md5", comment: "Allow app_user1 from app server subnet" }
+  # Example: Allow readonly_user_app1 to connect to app_db1 from anywhere (use with caution)
+  # - { type: "host", database: "app_db1", user: "readonly_user_app1", address: "0.0.0.0/0", method: "md5", comment: "Allow readonly_user_app1 from anywhere" }
+  # Example for replication user
+  # - { type: "host", database: "replication", user: "replicator", address: "192.168.1.10/32", method: "md5", comment: "Replication connection from standby" }
+
+#-----------------------------------------------------------------
+# Connection variables for Ansible tasks (usually the system postgres user)
+#-----------------------------------------------------------------
+# postgresql_admin_user: "{{ postgresql_user }}"
+# postgresql_admin_password: "vault_postgres_password" # Password for the 'postgres' OS/DB user if set and method is md5/scram-sha-256
+# postgresql_host: "localhost" # Or the specific IP/hostname if managing remotely
+# postgresql_login_user: "{{ postgresql_admin_user }}"
+# postgresql_login_password: "{{ postgresql_admin_password }}"
+# postgresql_login_host: "{{ postgresql_host }}"
+# postgresql_login_port: "{{ postgresql_port }}"

@@ -1,9 +1,90 @@
 ---
 # Main PostgreSQL role tasks
 
+#--------------------------------------------------------------#
+# Node                                                 [pg_node]
+#--------------------------------------------------------------#
 - name: Configure Node
   include_tasks: node.yml
+  tags: [pg_manage, pg_node]
 
-- name: Install PostgreSQL
+#--------------------------------------------------------------#
+# Install                                           [pg_install]
+#--------------------------------------------------------------#
+- name: PostgreSQL Ping | Check server availability
   include_tasks: install.yml
-  
+  tags: [pg_manage, pg_install]
+
+#--------------------------------------------------------------#
+# Ping                                                 [pg_ping]
+#--------------------------------------------------------------#
+- name: PostgreSQL Ping | Check server availability
+  include_tasks: ping.yml
+  tags: [pg_manage, pg_ping]
+
+#--------------------------------------------------------------#
+# Alter System                                 [pg_alter_system]
+#--------------------------------------------------------------#
+- name: PostgreSQL Alter System | Apply configuration
+  include_tasks: alter_system.yml
+  tags: [pg_manage, pg_alter_system]
+
+#--------------------------------------------------------------#
+# Database                                         [pg_database]
+#--------------------------------------------------------------#
+- name: PostgreSQL Database | Ensure databases are present
+  include_tasks: database.yml
+  tags: [pg_manage, pg_database]
+
+#--------------------------------------------------------------#
+# Schema                                             [pg_schema]
+#--------------------------------------------------------------#
+- name: PostgreSQL Schema | Ensure schemas are present
+  include_tasks: schema.yml
+  tags: [pg_manage, pg_schema]
+
+#--------------------------------------------------------------#
+# User                                                  [pg_user]
+#--------------------------------------------------------------#
+- name: PostgreSQL User | Ensure users are present
+  include_tasks: user.yml
+  tags: [pg_manage, pg_user]
+
+#--------------------------------------------------------------#
+# HBA                                                   [pg_hba]
+#--------------------------------------------------------------#
+- name: PostgreSQL HBA | Ensure HBA entries are present
+  include_tasks: hba.yml
+  tags: [pg_manage, pg_hba]
+
+#--------------------------------------------------------------#
+# Restart                                           [pg_restart]
+#--------------------------------------------------------------#
+- name: PostgreSQL Restart | Check for pending settings
+  include_tasks: restart.yml
+  tags: [pg_manage, pg_restart]
+
+#- name: PostgreSQL | Users
+#  include_tasks: user.yml
+#- name: PostgreSQL | Extensions
+#  include_tasks: extension.yml
+#- name: PostgreSQL | Roles
+#  include_tasks: role.yml
+#- name: PostgreSQL | Schemas
+#  include_tasks: schema.yml
+#- name: PostgreSQL | Tablespaces
+#  include_tasks: tablespace.yml
+#- name: PostgreSQL | Configuration
+#  include_tasks: configuration.yml
+#- name: PostgreSQL | Maintenance
+#  include_tasks: maintenance.yml
+#- name: PostgreSQL | Check
+#  include_tasks: check.yml
+#- name: PostgreSQL | Cleanup
+#  include_tasks: cleanup.yml
+#- name: PostgreSQL | Finalize
+#  include_tasks: finalize.yml
+#- name: PostgreSQL | Info
+#  include_tasks: info.yml
+#- name: PostgreSQL | Debug
+#  include_tasks: debug.yml

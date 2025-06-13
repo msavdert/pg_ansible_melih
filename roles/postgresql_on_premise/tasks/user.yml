@@ -1,0 +1,63 @@
+---
+# Create PostgreSQL users and manage privileges
+
+- name: Create PostgreSQL users
+  community.postgresql.postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password | default(omit) }}"
+    role_attr_flags: "{{ item.role_attr_flags | default(omit) }}"
+    encrypted: "{{ item.encrypted | default(true) }}"
+    state: "{{ item.state | default('present') }}"
+    comment: "{{ item.comment | default(omit) }}"
+    expires: "{{ item.expires | default(omit) }}"
+    conn_limit: "{{ item.conn_limit | default(omit) }}"
+  become: yes
+  become_user: "{{ postgresql_user }}"
+  with_items: "{{ postgresql_users }}"
+  when: postgresql_users is defined and postgresql_users|length > 0
+  no_log: true
+  tags: [pg_user, pg_user_create]
+
+- name: Grant database privileges to users
+  community.postgresql.postgresql_privs:
+    db: "{{ item.0.database }}"
+    privs: "{{ item.1 }}"
+    type: database
+    role: "{{ item.0.user }}"
+    state: present
+  become: yes
+  become_user: "{{ postgresql_user }}"
+  with_subelements:
+    - "{{ postgresql_user_privs | default([]) }}"
+    - privileges
+  when: postgresql_user_privs is defined and postgresql_user_privs|length > 0
+  tags: [pg_user, pg_user_privs]
+
+- name: Grant table privileges to users
+  community.postgresql.postgresql_privs:
+    db: "{{ item.database }}"
+    objs: "{{ item.tables | default(omit) }}"
+    privs: "{{ item.privileges }}"
+    type: table
+    role: "{{ item.user }}"
+    state: present
+    schema: "{{ item.schema | default('public') }}"
+  become: yes
+  become_user: "{{ postgresql_user }}"
+  with_items: "{{ postgresql_table_privs | default([]) }}"
+  when: postgresql_table_privs is defined and postgresql_table_privs|length > 0
+  tags: [pg_user, pg_table_privs]
+
+- name: Grant schema privileges to users
+  community.postgresql.postgresql_privs:
+    db: "{{ item.database }}"
+    objs: "{{ item.schema }}"
+    privs: "{{ item.privileges }}"
+    type: schema
+    role: "{{ item.user }}"
+    state: present
+  become: yes
+  become_user: "{{ postgresql_user }}"
+  with_items: "{{ postgresql_schema_privs | default([]) }}"
+  when: postgresql_schema_privs is defined and postgresql_schema_privs|length > 0
+  tags: [pg_user, pg_schema_privs]

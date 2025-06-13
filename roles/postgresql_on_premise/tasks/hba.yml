@@ -1,0 +1,23 @@
+---
+#--------------------------------------------------------------#
+# Create or edit pg_hba.conf                            [pg_hba]
+#--------------------------------------------------------------#
+- name: PostgreSQL Config | Get Information
+  tags: [pg_hba]
+  become: yes
+  become_user: "{{ postgresql_user }}"
+  community.postgresql.postgresql_info:
+  register: pg_info
+
+- name: PostgreSQL Config | configure host based authentication (if entries are configured).
+  tags: [pg_hba]
+  template:
+    src: "pg_hba.conf.j2"
+    dest: "{{ pg_info['settings']['hba_file']['setting'] }}"
+    owner: "{{ postgresql_user }}"
+    group: "{{ postgresql_user }}"
+    mode: '0600'
+    backup: yes
+  notify: reload postgresql
+  become: true
+  when: postgresql_hba_entries is defined and postgresql_hba_entries | length > 0

@@ -14,6 +14,13 @@
   include_tasks: database.yml
   tags: [pg_manage, pg_database]
 
+#--------------------------------------------------------------#
+# Schema                                             [pg_schema]
+#--------------------------------------------------------------#
+- name: PostgreSQL Schema | Ensure schemas are present
+  include_tasks: schema.yml
+  tags: [pg_manage, pg_schema]
+
 #- name: "Ping the managed database server (conceptual)"
 #  ansible.builtin.wait_for:
 #    host: "{{ ansible_host }}"

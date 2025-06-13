@@ -1,0 +1,147 @@
+---
+#-----------------------------------------------------------------
+# RDS POSTGRESQL CONFIGURATION
+#-----------------------------------------------------------------
+
+#-----------------------------------------------------------------
+# DATABASE DEFINITIONS
+# Ensure these databases exist on the RDS instance.
+#-----------------------------------------------------------------
+postgresql_databases:
+  - name: "my_rds_app_db"
+    owner: "db_owner_user" # Should match a defined user/role
+    # lc_collate: "en_US.UTF-8" # RDS might have limitations or specific ways to set this
+    # lc_ctype: "en_US.UTF-8"   # RDS might have limitations or specific ways to set this
+    # encoding: "UTF-8"         # RDS might have limitations or specific ways to set this
+    # template: "template0"     # RDS might have limitations or specific ways to set this
+    state: "present"
+    comment: "Application database for my_rds_app"
+
+#-----------------------------------------------------------------
+# SCHEMA DEFINITIONS
+# Ensure these schemas exist within specified databases.
+#-----------------------------------------------------------------
+postgresql_schemas:
+  - database: "my_rds_app_db"
+    name: "application_schema"
+    owner: "db_owner_user" # Should match a defined user/role
+    state: "present"
+    comment: "Schema for application data"
+  - database: "my_rds_app_db"
+    name: "reporting_schema"
+    owner: "reporting_user" # Should match a defined user/role
+    state: "present"
+    comment: "Schema for reporting purposes"
+
+#-----------------------------------------------------------------
+# USER AND ROLE DEFINITIONS
+# Define users and roles. Passwords should be managed via Ansible Vault.
+#-----------------------------------------------------------------
+postgresql_users:
+  - name: "db_owner_user"
+    password: "vault_db_owner_password" # STORE IN ANSIBLE VAULT
+    # encrypted: yes # if password is pre-encrypted
+    # login_host: "localhost" # For RDS, connection is managed differently
+    # login_port: 5432
+    # login_user: "postgres_admin_on_rds" # The master user for RDS
+    # login_password: "vault_postgres_admin_password" # STORE IN ANSIBLE VAULT
+    priv: "ALL" # Example: "ALL PRIVILEGES" or specific grants
+    db: "my_rds_app_db" # Grant privileges on this DB
+    role_attr_flags: "CREATEDB,LOGIN" # e.g., "LOGIN,SUPERUSER,CREATEDB" - Be cautious with SUPERUSER on RDS
+    state: "present"
+    comment: "Owner user for my_rds_app_db"
+
+  - name: "readonly_user"
+    password: "vault_readonly_password" # STORE IN ANSIBLE VAULT
+    priv: "CONNECT,SELECT"
+    db: "my_rds_app_db"
+    schema: "application_schema" # Grant SELECT on tables in this schema
+    obj_type: "TABLES" # Grant on TABLES, SEQUENCES, FUNCTIONS
+    role_attr_flags: "LOGIN"
+    state: "present"
+    comment: "Read-only user for application_schema"
+
+postgresql_roles:
+  - name: "reporting_user"
+    # password: "vault_reporting_password" # If it's a login role
+    # role_attr_flags: "LOGIN"
+    # member_of: ["another_role"]
+    priv: "CONNECT,SELECT,INSERT,UPDATE,DELETE"
+    db: "my_rds_app_db"
+    schema: "reporting_schema"
+    obj_type: "TABLES"
+    state: "present"
+    comment: "Role for reporting access to reporting_schema"
+
+#-----------------------------------------------------------------
+# EXTENSION DEFINITIONS
+# Ensure these extensions are enabled in specified databases.
+# RDS has a specific list of supported extensions.
+#-----------------------------------------------------------------
+postgresql_extensions:
+  - name: "pg_stat_statements"
+    database: "my_rds_app_db"
+    # schema: "public" # Some extensions require a specific schema
+    state: "present"
+    comment: "Enable pg_stat_statements for query monitoring"
+  - name: "uuid-ossp"
+    database: "my_rds_app_db"
+    state: "present"
+    comment: "Enable uuid-ossp for UUID generation"
+  - name: "hstore"
+    database: "my_rds_app_db"
+    state: "present"
+    comment: "Enable hstore for key-value pair storage"
+
+#-----------------------------------------------------------------
+# DEFAULT PRIVILEGES
+# Define default privileges for users/roles on objects created in the future.
+#-----------------------------------------------------------------
+postgresql_default_privileges:
+  - role: "db_owner_user"
+    target_schema: "application_schema" # Apply to this schema
+    # database: "my_rds_app_db" # Apply within this database
+    privs: "ALL" # Privileges like SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+    obj_type: "TABLES" # Object types: TABLES, SEQUENCES, FUNCTIONS, TYPES, SCHEMAS
+    # grant_option: yes # Allow the role to grant these privileges to others
+    state: "present"
+  - role: "reporting_user"
+    target_schema: "reporting_schema"
+    privs: "SELECT"
+    obj_type: "TABLES"
+    state: "present"
+
+#-----------------------------------------------------------------
+# PostgreSQL Settings (Tunables via Parameter Groups in RDS)
+# These are typically managed via RDS Parameter Groups, not directly via Ansible for RDS.
+# This section is for informational purposes or if specific settings can be influenced.
+#-----------------------------------------------------------------
+# postgresql_conf:
+#   - name: "shared_buffers"
+#     value: "1GB" # Example, adjust based on RDS instance size
+#   - name: "work_mem"
+#     value: "64MB"
+#   - name: "maintenance_work_mem"
+#     value: "256MB"
+#   - name: "log_statement"
+#     value: "ddl"
+
+# postgresql_pg_hba_conf: # Managed by RDS Security Groups and IAM
+#   - { type: "host", database: "all", user: "all", address: "0.0.0.0/0", method: "md5" } # Example, highly insecure
+
+#-----------------------------------------------------------------
+# Connection variables for Ansible tasks to connect to RDS
+# These would typically be the master user credentials for the RDS instance.
+#-----------------------------------------------------------------
+# postgresql_admin_user: "rds_master_user"
+# postgresql_admin_password: "vault_rds_master_password" # STORE IN ANSIBLE VAULT
+# postgresql_host: "your-rds-instance-endpoint.region.rds.amazonaws.com"
+# postgresql_port: 5432 # Default PostgreSQL port
+# postgresql_login_user: "{{ postgresql_admin_user }}"
+# postgresql_login_password: "{{ postgresql_admin_password }}"
+# postgresql_login_host: "{{ postgresql_host }}"
+# postgresql_login_port: "{{ postgresql_port }}"
+
+# Note: For RDS, many global configurations (like data directory, service management, etc.)
+# are managed by AWS and are not configurable via Ansible in the same way as on-premise.
+# Focus on database objects: databases, schemas, users, roles, extensions, privileges.
