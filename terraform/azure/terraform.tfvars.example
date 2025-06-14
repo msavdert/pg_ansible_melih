@@ -1,46 +1,124 @@
 # Azure PostgreSQL Terraform Variables Example
 
-# # Azure Region
-# location = "East US"
+# --- Global Settings ---
+location     = "East US"
+project_name = "myazurepgproject"
+namespace    = "dev" # Optional: e.g., "dev", "prod", "shared"
 
-# # Project and Environment
-# project_name = "mywebapp"
-# environment  = "staging"
+common_tags = {
+  Owner       = "Melih Savdert"
+  CostCenter  = "IT-Databases"
+  Environment = "Development" # Overridden by instance-specific tags if needed
+}
 
-# # Common Tags (optional)
-# common_tags = {
-#   Owner       = "team-alpha"
-#   CostCenter  = "12345"
-#   Application = "MyWebApp"
-# }
+# --- Optional Overrides for Existing Infrastructure ---
+# If you have existing resources, uncomment and set their names.
+# Otherwise, new resources will be created.
+# resource_group_name_override = "existing-rg-name"
+# vnet_name_override             = "existing-vnet-name"
+# db_subnet_name                 = "ExistingPostgreSqlSubnetName" # Ensure this subnet exists in the vnet_name_override and is delegated
+# key_vault_name_override        = "existing-kv-name"
+# log_analytics_workspace_name_override = "existing-law-name"
 
-# # Resource Group
-# # If you have an existing resource group, specify its name, otherwise one will be created.
-# resource_group_name = "mywebapp-staging-rg"
 
-# # PostgreSQL Flexible Server Configuration
-# pg_server_name      = "mywebapp-staging-pgflex"
-# pg_version          = "16"
-# pg_admin_login      = "pgadminuser"
-# # pg_admin_password_override = "YourStrongPassword!23" # Provide a strong password or let Terraform generate one. Sensitive.
-# pg_sku_name         = "GP_Standard_D2s_v3" # General Purpose, 2 vCores, 8 GiB RAM. Check Azure docs for options.
-# pg_storage_mb       = 131072 # 128 GB
+# --- VNet and Subnet Configuration (used if not overriding) ---
+vnet_address_space = ["10.20.0.0/16"]
+# db_subnet_name is defined in variables.tf, default: "PostgreSqlFlexibleServerSubnet"
+db_subnet_address_prefix = "10.20.1.0/24"
 
-# # Backup and HA (optional)
-# # backup_retention_days = 14
-# # geo_redundant_backup_enabled = false
-# # availability_zone = "2" # Specify availability zone if needed
 
-# # Networking
-# # Set to false for production and configure VNet integration and private endpoints.
-# public_network_access_enabled = true
+# --- Key Vault Configuration (used if not overriding and password management is enabled) ---
+key_vault_sku_name = "standard"
 
-# # Firewall Rules (use with caution, especially for public access)
-# # allow_ip_address = "203.0.113.42" # Your specific IP address for access
-# # allow_azure_services = true # Allow access from Azure internal services
 
-# # Azure Subscription and Service Principal (if not configured via environment variables or Azure CLI login)
-# # subscription_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-# # client_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-# # client_secret   = "YourServicePrincipalSecret_xxxxxxxxxxxxxxxxx"
-# # tenant_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# --- Log Analytics Workspace Configuration (used if not overriding and logging is enabled) ---
+log_analytics_workspace_sku = "PerGB2018"
+
+
+# --- Private DNS Zone for PostgreSQL ---
+# private_dns_zone_name_for_postgresql = "privatelink.postgres.database.azure.com" # Default is usually correct
+
+
+# --- Database Instance Definitions ---
+database_instances = {
+  "pgflexprod" = {
+    name_suffix                                   = "prod"
+    version                                       = "16"
+    sku_name                                      = "GP_Standard_D4s_v3" # General Purpose, 4 vCores, 16 GiB RAM
+    storage_gb                                    = 256
+    administrator_login                           = "pgprodadmin"
+    # administrator_password_override             = "VeryComplexP@ssw0rdProd123!" # Uncomment to set password directly, bypassing Key Vault
+    manage_password_in_key_vault_if_not_overridden = true # Default
+
+    high_availability_mode                        = "ZoneRedundant" # Ensure your region and SKU support this
+    high_availability_standby_availability_zone   = "2"             # Specify standby AZ
+    availability_zone                             = "1"             # Specify primary AZ
+
+    backup_retention_days                         = 14
+    geo_redundant_backup_enabled                  = true # Ensure your region and SKU support this
+
+    maintenance_window_day_of_week                = 0    # Sunday
+    maintenance_window_start_hour                 = 2    # 02:00
+    maintenance_window_start_minute               = 30   # 02:30
+
+    enable_diagnostic_settings                    = true
+    diagnostic_log_categories_to_include          = ["PostgreSQLLogs", "SessionLogs", "QueryStoreRuntimeStatistics", "QueryStoreWaitStatistics"]
+    diagnostic_metric_categories_to_include       = ["AllMetrics"]
+    # log_analytics_workspace_id_override         = "/subscriptions/.../resourceGroups/.../providers/Microsoft.OperationalInsights/workspaces/myCustomLAW" # Optional
+
+    server_parameters = {
+      "autovacuum"                  = "on"
+      "log_connections"             = "on"
+      "log_disconnections"          = "on"
+      "log_statement"               = "ddl"
+      "shared_buffers"              = "4096MB" # Example, adjust based on SKU RAM (e.g., 25% of total RAM)
+      "work_mem"                    = "64MB"   # Example
+      "maintenance_work_mem"        = "512MB"  # Example
+      "azure.extensions"            = "PGVECTOR,UUID-OSSP,PGCRYPTO" # Comma-separated list of extensions to enable
+      "pg_stat_statements.track"    = "ALL"
+      "jit"                         = "off" # Consider implications before changing
+    }
+
+    # subnet_id_override = "/subscriptions/.../resourceGroups/.../providers/Microsoft.Network/virtualNetworks/.../subnets/myCustomSubnetForProd" # Optional
+    # private_dns_zone_id_override = "/subscriptions/.../resourceGroups/.../providers/Microsoft.Network/privateDnsZones/my.custom.privatelink.postgres.database.azure.com" # Optional
+
+    tags = {
+      Environment = "Production"
+      ServiceTier = "Tier1"
+    }
+  },
+
+  "pgflexdev" = {
+    name_suffix                                   = "dev01"
+    version                                       = "15"
+    sku_name                                      = "B_Standard_B1ms" # Burstable, 1 vCore, 2 GiB RAM (Cost-effective for dev/test)
+    storage_gb                                    = 64
+    administrator_login                           = "pgdevadmin"
+    # No password override, so it will be managed in Key Vault by default
+
+    high_availability_mode                        = "Disabled" # Typically disabled for dev
+    # high_availability_standby_availability_zone = null
+    # availability_zone                           = "1" # Can still specify a zone for non-HA deployment
+
+    backup_retention_days                         = 3
+    geo_redundant_backup_enabled                  = false
+
+    maintenance_window_day_of_week                = 1    # Monday
+    maintenance_window_start_hour                 = 3
+    maintenance_window_start_minute               = 0
+
+    enable_diagnostic_settings                    = true
+    diagnostic_log_categories_to_include          = ["PostgreSQLLogs"] # Less logging for dev
+    # diagnostic_metric_categories_to_include     = ["AllMetrics"]
+
+    server_parameters = {
+      "log_statement" = "none" # Less verbose for dev
+      "azure.extensions" = "UUID-OSSP"
+    }
+
+    tags = {
+      Environment = "Development"
+      Team        = "Alpha"
+    }
+  }
+}

@@ -1,54 +1,77 @@
-# AWS RDS PostgreSQL Terraform Variables Example (With VPC Creation Options)
+region                     = "us-east-1"
+project_name               = "awssento"
+vpc_cidr                   = "10.31.0.0/16"
 
-# # AWS Region
-# region = "us-west-2"
+# Optional: If you want to use a namespace, set it here. Otherwise, leave it empty or remove the line.
+namespace = "ms"
 
-# # Project and Environment
-# project_name = "webapp-beta"
-# environment  = "prod"
+database_instances = {
+  "sento" = {
+    identifier_suffix = "sento"
+    db_name           = "sento"
+    engine_version    = "16.7"
+    instance_class    = "db.t4g.medium"
+  },
+  "sento-test" = {
+    identifier_suffix       = "sento-test"
+    db_name                 = "sentotest"
+    engine_version          = "15.3"
+    instance_class          = "db.t3.small"
+    backup_retention_period = 0
+  },
+  # Example of a third database instance with all available parameters commented out for reference.
+  # "sento-dev" = {
+  #   identifier_suffix       = "sento-dev"       # Required: Suffix for the RDS identifier (e.g., projectname-suffix)
+  #   db_name                 = "sentodev"        # Required: The name of the database to create when the DB instance is created
+  #
+  #   # Optional parameters (defaults are shown as defined in variables.tf):
+  #   # https://docs.aws.amazon.com/AmazonRDS/latest/PostgreSQLReleaseNotes/postgresql-versions.html
+  #   engine_version          = "14"              # Default: "14" - e.g., "16.1", "15.3"
+  #   # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.Support.html
+  #   instance_class          = "db.t4g.large"    # Default: "db.t4g.large" - e.g., "db.t3.medium", "db.r5.large"
+  #   allocated_storage       = 20                # Default: 20 (GB)
+  #   max_allocated_storage   = 100               # Default: 100 (GB)
+  #   username                = "pgadmin"         # Default: "pgadmin"
+  #   port                    = 5432              # Default: 5432
+  #   multi_az                = false             # Default: false
+  #   backup_retention_period = 1                 # Default: 1 (day)
+  #   skip_final_snapshot     = true              # Default: true
+  #   deletion_protection     = false             # Default: false
+  #
+  #   # Password Management
+  #   password_override                              = null    # Default: null - Set to a string to override Secrets Manager, e.g., "mySecurePassword123!"
+  #   manage_master_user_password_if_not_overridden  = true    # Default: true - If password_override is null, should Secrets Manager manage it?
+  #   manage_master_user_password_rotation           = true    # Default: true
+  #   master_user_password_rotate_immediately        = false   # Default: false
+  #   master_user_password_rotation_schedule_expression = "rate(15 days)" # Default: "rate(15 days)"
+  #
+  #   # Maintenance and Logging
+  #   maintenance_window              = "Mon:00:00-Mon:03:00" # Default: "Mon:00:00-Mon:03:00"
+  #   backup_window                   = "03:00-06:00"         # Default: "03:00-06:00"
+  #   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"] # Default: ["postgresql", "upgrade"]
+  #
+  #   # Performance Insights & Monitoring
+  #   performance_insights_enabled          = true    # Default: true
+  #   performance_insights_retention_period = 7       # Default: 7 (days)
+  #   monitoring_interval                   = 60      # Default: 60 (seconds)
+  #
+  #   # Database Parameters
+  #   db_parameters = [] # Default: [] - Empty list, meaning no custom parameters by default.
+  #   # Example:
+  #   # db_parameters = [
+  #   #   { name = "autovacuum", value = "1", apply_method = "pending-reboot" },
+  #   #   { name = "client_encoding", value = "utf8", apply_method = "pending-reboot" }
+  #   # ]
+  #
+  #   # Parameter Group Control
+  #   create_db_parameter_group       = true      # Default: true - Whether to create a new DB parameter group.
+  #   parameter_group_name            = null      # Default: null - Name of the DB parameter group. If null and create_db_parameter_group is true, module generates a name. If create_db_parameter_group is false, this must be an existing PG name.
+  #   parameter_group_use_name_prefix = true      # Default: true - Whether the name provided in parameter_group_name is a prefix. (Note: terraform-aws-rds module behavior might differ slightly, if parameter_group_name is set, it often uses that exact name).
+  # }
+}
 
-# # Common Tags (optional)
-# common_tags = {
-#   Terraform   = "true"
-#   BillingCode = "BC789"
-#   ServiceTier = "Tier1"
-# }
-
-# # --- VPC Configuration ---
-# # Set create_vpc to true to provision a new VPC, subnets, IGW, etc.
-# # Set to false if you are using an existing VPC and network resources.
-# create_vpc = true
-
-# # Variables used if create_vpc is true:
-# vpc_cidr_block       = "10.10.0.0/16"
-# public_subnet_cidrs  = ["10.10.1.0/24", "10.10.2.0/24"] # For 2 AZs
-# private_subnet_cidrs = ["10.10.101.0/24", "10.10.102.0/24"] # For 2 AZs, where RDS will reside
-# # availability_zones   = ["us-west-2a", "us-west-2b"] # Specify AZs, or leave empty for Terraform to choose
-# # enable_dns_hostnames = true
-# # enable_dns_support   = true
-
-# # --- RDS Instance Configuration ---
-# db_instance_class     = "db.m5.large"
-# db_allocated_storage  = 200 # GB
-# db_engine_version     = "16.3" # Check AWS for latest supported minor versions for PostgreSQL 16
-# db_name               = "betadb"
-# db_username           = "betaadmin"
-# # db_password_override = "AVerySecureP@ssw0rdForBeta!" # Provide a strong password or let Terraform generate one. Sensitive.
-
-# # RDS Networking:
-# # If create_vpc = false (using existing VPC):
-#   # db_subnet_group_name   = "my-existing-db-subnet-group-for-beta" # Required if not creating VPC & not using private_subnet_ids_for_db_group
-#   # vpc_security_group_ids = ["sg-existingcustomsgrds"] # Required if not creating VPC
-#   # private_subnet_ids_for_db_group = ["subnet-existingprivate1", "subnet-existingprivate2"] # Use if creating a new subnet group from existing subnets
-# # If create_vpc = true, the db_subnet_group_name and vpc_security_group_ids for RDS will be handled by the created resources.
-# # You can still provide additional vpc_security_group_ids if needed using the vpc_security_group_ids variable.
-
-# # RDS Features
-# # db_parameter_group_name   = "custom-pg16-beta-params" # Or default.postgres16
-# skip_final_snapshot    = false # For production
-# publicly_accessible  = false # Recommended for security.
-# multi_az               = true  # For production
-# storage_type           = "gp3"
-# # iops                   = 4000 # Only for io1 or gp3. For gp3, baseline is included with storage.
-# # max_allocated_storage  = 500 # For storage autoscaling (GB)
-# deletion_protection    = true  # For production.
+common_tags = {
+  Owner     = "Melih Savdert"
+  ManagedBy = "Terraform"
+  # You can add more common tags here
+}

@@ -1,138 +1,153 @@
 variable "location" {
-  description = "Azure region to deploy resources."
+  description = "Azure region where resources will be deployed."
   type        = string
   default     = "East US"
 }
 
 variable "project_name" {
-  description = "A name for the project, used to prefix resource names."
+  description = "Name of the project, used for naming resources."
   type        = string
-  default     = "pgproject"
+  default     = "azurepg"
 }
 
-variable "environment" {
-  description = "Deployment environment (e.g., dev, test, prod)."
+variable "namespace" {
+  description = "Namespace to prefix resource names. If empty, no prefix is used."
   type        = string
-  default     = "dev"
+  default     = ""
 }
 
 variable "common_tags" {
   description = "Common tags to apply to all resources."
   type        = map(string)
-  default     = {}
+  default     = {
+    TerraformManaged = "true"
+    Project          = "azurepg" # Default, can be overridden by project_name
+  }
 }
 
-variable "resource_group_name" {
-  description = "Name of the Azure Resource Group. If empty, one will be created."
+variable "resource_group_name_override" {
+  description = "Optional: Name of an existing resource group. If null or empty, a new one will be created using project_name and namespace."
   type        = string
-  default     = "" # e.g., "my-existing-rg"
+  default     = null
 }
 
-# PostgreSQL Flexible Server Specific Variables
-variable "pg_server_name" {
-  description = "Name of the PostgreSQL Flexible Server. If empty, one will be generated."
+variable "vnet_name_override" {
+  description = "Optional: Name of an existing VNet. If null or empty, a new one will be created."
   type        = string
-  default     = "" # e.g., "my-pgflex-server"
+  default     = null
 }
 
-variable "pg_version" {
-  description = "PostgreSQL version for the Flexible Server."
+variable "vnet_address_space" {
+  description = "Address space for the Virtual Network."
+  type        = list(string)
+  default     = ["10.10.0.0/16"]
+}
+
+variable "db_subnet_name" {
+  description = "Name of the subnet for PostgreSQL servers."
   type        = string
-  default     = "16" # Check Azure for supported versions
+  default     = "PostgreSqlFlexibleServerSubnet" # Name must be specific for delegation
 }
 
-variable "pg_admin_login" {
-  description = "Administrator login name for the PostgreSQL server."
+variable "db_subnet_address_prefix" {
+  description = "Address prefix for the PostgreSQL subnet. Must be within VNet address space."
   type        = string
-  default     = "pgadminuser"
+  default     = "10.10.1.0/24"
 }
 
-variable "pg_admin_password_override" {
-  description = "Administrator login password. If empty, a random one is generated. Sensitive."
+variable "key_vault_name_override" {
+  description = "Optional: Name of an existing Key Vault. If null or empty and password management is enabled, a new one will be created."
   type        = string
-  default     = ""
-  sensitive   = true
+  default     = null
 }
 
-variable "pg_sku_name" {
-  description = "SKU name for the PostgreSQL server (e.g., GP_Standard_D2s_v3, B_Standard_B1ms)."
+variable "key_vault_sku_name" {
+  description = "SKU name for the Key Vault if created."
   type        = string
-  default     = "B_Standard_B1ms" # Basic tier, for testing/dev
+  default     = "standard" # or "premium"
 }
 
-variable "pg_storage_mb" {
-  description = "Max storage allowed for the PostgreSQL server in MB."
-  type        = number
-  default     = 32768 # 32 GB
-}
-
-variable "backup_retention_days" {
-  description = "Backup retention days for the server."
-  type        = number
-  default     = 7
-}
-
-variable "geo_redundant_backup_enabled" {
-  description = "Enable Geo-redundant backups."
-  type        = bool
-  default     = false
-}
-
-variable "public_network_access_enabled" {
-  description = "Whether public network access is enabled. Recommended false for production."
-  type        = bool
-  default     = true # Set to false and configure VNet integration for production
-}
-
-variable "allow_ip_address" {
-  description = "An IP address to allow through the firewall. If empty, no specific IP rule is created."
+variable "log_analytics_workspace_name_override" {
+  description = "Optional: Name of an existing Log Analytics Workspace. If null or empty and logging is enabled, a new one will be created."
   type        = string
-  default     = "" # e.g., "203.0.113.42"
+  default     = null
 }
 
-variable "allow_azure_services" {
-  description = "Whether to allow Azure internal services to access the PostgreSQL server."
-  type        = bool
-  default     = false
-}
-
-variable "availability_zone" {
-  description = "Availability zone for the server. e.g. "1", "2", "3"."
+variable "log_analytics_workspace_sku" {
+  description = "SKU for the Log Analytics Workspace if created."
   type        = string
-  default     = "1" # Or null if not needed / let Azure decide
+  default     = "PerGB2018"
 }
 
-# High Availability (example, more complex than this)
-# variable "ha_mode" {
-#   description = "High availability mode. Can be ZoneRedundant or SameZone."
-#   type        = string
-#   default     = null # e.g. "ZoneRedundant"
-# }
-# variable "ha_standby_availability_zone" {
-#   description = "Standby availability zone for HA. Required if ha_mode is ZoneRedundant."
-#   type        = string
-#   default     = null # e.g. "2"
-# }
+variable "private_dns_zone_name_for_postgresql" {
+  description = "Name of the private DNS zone for PostgreSQL Flexible Server. E.g., 'privatelink.postgres.database.azure.com'. This is typically fixed for Azure public cloud."
+  type        = string
+  default     = "privatelink.postgres.database.azure.com"
+}
 
-# Optional: Subscription and Tenant info if not using environment variables or CLI login
-# variable "subscription_id" {
-#   description = "Azure Subscription ID."
-#   type        = string
-#   default     = ""
-# }
-# variable "client_id" {
-#   description = "Azure Client ID for Service Principal."
-#   type        = string
-#   default     = ""
-# }
-# variable "client_secret" {
-#   description = "Azure Client Secret for Service Principal."
-#   type        = string
-#   default     = ""
-#   sensitive   = true
-# }
-# variable "tenant_id" {
-  # description = "Azure Tenant ID."
-#   type        = string
-#   default     = ""
-# }
+variable "database_instances" {
+  description = "A map of Azure Database for PostgreSQL Flexible Server configurations."
+  type = map(object({
+    name_suffix                                   = string # Unique suffix for the server name, e.g., "prod", "dev01"
+    version                                       = optional(string, "15") # e.g., "13", "14", "15", "16"
+    sku_name                                      = string # e.g., "GP_Standard_D2s_v3", "MO_Standard_E4s_v3". See Azure docs for full list.
+    storage_gb                                    = number # Storage in GB, e.g., 32, 128, 256
+    administrator_login                           = optional(string, "pgadminuser")
+    administrator_password_override               = optional(string, null) # Set to a specific password to override Key Vault management for this instance.
+    manage_password_in_key_vault_if_not_overridden = optional(bool, true)   # If administrator_password_override is null, should Key Vault manage it?
+
+    high_availability_mode                        = optional(string, "Disabled") # "Disabled", "ZoneRedundant", "SameZone"
+    high_availability_standby_availability_zone   = optional(string, null)       # e.g., "1", "2", "3". Required if mode is not "Disabled".
+    availability_zone                             = optional(string, null)       # Preferred AZ for the primary server or for SameZone HA, e.g., "1", "2", "3".
+
+    backup_retention_days                         = optional(number, 7)
+    geo_redundant_backup_enabled                  = optional(bool, false)
+
+    maintenance_window_day_of_week                = optional(number, 0) # 0 (Sunday) to 6 (Saturday)
+    maintenance_window_start_hour                 = optional(number, 1) # 0-23
+    maintenance_window_start_minute               = optional(number, 0) # 0-59
+
+    # Diagnostic Settings
+    enable_diagnostic_settings                    = optional(bool, true)
+    # If log_analytics_workspace_id_override is null, uses the shared workspace.
+    log_analytics_workspace_id_override         = optional(string, null)
+    # Valid categories: "PostgreSQLLogs", "SessionLogs", "QueryStoreRuntimeStatistics", "QueryStoreWaitStatistics", "AllLogs"
+    diagnostic_log_categories_to_include          = optional(list(string), ["PostgreSQLLogs", "AllLogs"])
+    # Valid categories: "AllMetrics"
+    diagnostic_metric_categories_to_include       = optional(list(string), ["AllMetrics"])
+
+    # Server Parameters (key-value map)
+    # Example: { "autovacuum" = "on", "log_connections" = "on", "azure.extensions" = "PGVECTOR,UUID-OSSP" }
+    server_parameters                             = optional(map(string), {})
+
+    # Networking - Optional overrides if you need specific instances in different subnets/DNS zones
+    # The subnet must be delegated to 'Microsoft.DBforPostgreSQL/flexibleServers'.
+    subnet_id_override                            = optional(string, null)
+    # If null, uses the shared private DNS zone created/specified at the top level.
+    private_dns_zone_id_override                  = optional(string, null)
+
+    tags                                          = optional(map(string), {}) # Additional tags specific to this instance
+  }))
+  default = {
+    # Example instance (uncomment and modify to use)
+    # "pgflex01" = {
+    #   name_suffix    = "pgflex01"
+    #   sku_name       = "GP_Standard_D2s_v3" # General Purpose, 2 vCores, 8 GiB RAM
+    #   storage_gb     = 128
+    #   version        = "15"
+    #   administrator_login = "demoadmin"
+    #   # administrator_password_override = "MySecureP@ssw0rd123!" # Uncomment to set a password directly
+    #   high_availability_mode = "ZoneRedundant"
+    #   high_availability_standby_availability_zone = "2" # Ensure your region supports this
+    #   availability_zone = "1" # Ensure your region supports this
+    #   backup_retention_days = 10
+    #   server_parameters = {
+    #     "log_connections" = "on"
+    #     "log_statement"   = "ddl"
+    #   }
+    #   tags = {
+    #     Environment = "dev"
+    #   }
+    # }
+  }
+}
