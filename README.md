@@ -449,6 +449,17 @@ The tasks for creating databases and schemas are generally similar for both `db_
     *   `restart.yml`: Restart PostgreSQL service.
     *   `ping.yml`: Connectivity check.
 
+## Infrastructure Provisioning with Terraform
+
+This project also includes capabilities for provisioning PostgreSQL infrastructure on cloud providers using Terraform. These Terraform configurations are located in the `terraform/` directory and are designed to be used as templates for creating new project-specific infrastructure.
+
+For detailed information on how to use Terraform for provisioning, please refer to the [Terraform specific README](./terraform/README.md).
+
+The general idea is to:
+1. Use a Terraform template (e.g., from `terraform/aws/` or `terraform/azure/`) to create your PostgreSQL instance.
+2. Use the outputs from Terraform (like database endpoint, port) to configure your Ansible inventory for that project.
+3. Use the Ansible playbooks in this project to perform fine-grained configuration management, database setup, user creation, etc., on the Terraform-provisioned instances.
+
 ## Important Considerations
 
 *   **Idempotency**: Playbooks are designed to be idempotent.

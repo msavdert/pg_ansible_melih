@@ -1,0 +1,46 @@
+# Azure PostgreSQL Terraform Variables Example
+
+# # Azure Region
+# location = "East US"
+
+# # Project and Environment
+# project_name = "mywebapp"
+# environment  = "staging"
+
+# # Common Tags (optional)
+# common_tags = {
+#   Owner       = "team-alpha"
+#   CostCenter  = "12345"
+#   Application = "MyWebApp"
+# }
+
+# # Resource Group
+# # If you have an existing resource group, specify its name, otherwise one will be created.
+# resource_group_name = "mywebapp-staging-rg"
+
+# # PostgreSQL Flexible Server Configuration
+# pg_server_name      = "mywebapp-staging-pgflex"
+# pg_version          = "16"
+# pg_admin_login      = "pgadminuser"
+# # pg_admin_password_override = "YourStrongPassword!23" # Provide a strong password or let Terraform generate one. Sensitive.
+# pg_sku_name         = "GP_Standard_D2s_v3" # General Purpose, 2 vCores, 8 GiB RAM. Check Azure docs for options.
+# pg_storage_mb       = 131072 # 128 GB
+
+# # Backup and HA (optional)
+# # backup_retention_days = 14
+# # geo_redundant_backup_enabled = false
+# # availability_zone = "2" # Specify availability zone if needed
+
+# # Networking
+# # Set to false for production and configure VNet integration and private endpoints.
+# public_network_access_enabled = true
+
+# # Firewall Rules (use with caution, especially for public access)
+# # allow_ip_address = "203.0.113.42" # Your specific IP address for access
+# # allow_azure_services = true # Allow access from Azure internal services
+
+# # Azure Subscription and Service Principal (if not configured via environment variables or Azure CLI login)
+# # subscription_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# # client_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# # client_secret   = "YourServicePrincipalSecret_xxxxxxxxxxxxxxxxx"
+# # tenant_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"

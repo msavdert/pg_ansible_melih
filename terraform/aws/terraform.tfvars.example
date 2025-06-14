@@ -1,0 +1,54 @@
+# AWS RDS PostgreSQL Terraform Variables Example (With VPC Creation Options)
+
+# # AWS Region
+# region = "us-west-2"
+
+# # Project and Environment
+# project_name = "webapp-beta"
+# environment  = "prod"
+
+# # Common Tags (optional)
+# common_tags = {
+#   Terraform   = "true"
+#   BillingCode = "BC789"
+#   ServiceTier = "Tier1"
+# }
+
+# # --- VPC Configuration ---
+# # Set create_vpc to true to provision a new VPC, subnets, IGW, etc.
+# # Set to false if you are using an existing VPC and network resources.
+# create_vpc = true
+
+# # Variables used if create_vpc is true:
+# vpc_cidr_block       = "10.10.0.0/16"
+# public_subnet_cidrs  = ["10.10.1.0/24", "10.10.2.0/24"] # For 2 AZs
+# private_subnet_cidrs = ["10.10.101.0/24", "10.10.102.0/24"] # For 2 AZs, where RDS will reside
+# # availability_zones   = ["us-west-2a", "us-west-2b"] # Specify AZs, or leave empty for Terraform to choose
+# # enable_dns_hostnames = true
+# # enable_dns_support   = true
+
+# # --- RDS Instance Configuration ---
+# db_instance_class     = "db.m5.large"
+# db_allocated_storage  = 200 # GB
+# db_engine_version     = "16.3" # Check AWS for latest supported minor versions for PostgreSQL 16
+# db_name               = "betadb"
+# db_username           = "betaadmin"
+# # db_password_override = "AVerySecureP@ssw0rdForBeta!" # Provide a strong password or let Terraform generate one. Sensitive.
+
+# # RDS Networking:
+# # If create_vpc = false (using existing VPC):
+#   # db_subnet_group_name   = "my-existing-db-subnet-group-for-beta" # Required if not creating VPC & not using private_subnet_ids_for_db_group
+#   # vpc_security_group_ids = ["sg-existingcustomsgrds"] # Required if not creating VPC
+#   # private_subnet_ids_for_db_group = ["subnet-existingprivate1", "subnet-existingprivate2"] # Use if creating a new subnet group from existing subnets
+# # If create_vpc = true, the db_subnet_group_name and vpc_security_group_ids for RDS will be handled by the created resources.
+# # You can still provide additional vpc_security_group_ids if needed using the vpc_security_group_ids variable.
+
+# # RDS Features
+# # db_parameter_group_name   = "custom-pg16-beta-params" # Or default.postgres16
+# skip_final_snapshot    = false # For production
+# publicly_accessible  = false # Recommended for security.
+# multi_az               = true  # For production
+# storage_type           = "gp3"
+# # iops                   = 4000 # Only for io1 or gp3. For gp3, baseline is included with storage.
+# # max_allocated_storage  = 500 # For storage autoscaling (GB)
+# deletion_protection    = true  # For production.
